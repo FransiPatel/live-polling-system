@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Polling System</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #polls {
+            padding: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        #options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 15px;
+        }
+        .option {
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 8px;
+            width: 200px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .option input {
+            margin-right: 10px;
+        }
+        .option:hover {
+            background-color: #ddd;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #results {
+            margin-top: 20px;
+            text-align: left;
+            display: inline-block;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .result-item {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .vote-count {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Polling System</h1>
+    
+    <h2>Create Poll</h2>
+    <form id="createPollForm">
+        <input type="text" id="pollQuestion" placeholder="Enter poll question" required>
+        <div id="pollOptions">
+            <input type="text" class="pollOption" placeholder="Option 1" required>
+            <input type="text" class="pollOption" placeholder="Option 2" required>
+        </div>
+        <button type="button" onclick="addOption()">Add Option</button>
+        <button type="submit">Create Poll</button>
+    </form>
+
+    <h2>Available Polls</h2>
+    <label for="polls">Select Poll:</label>
+    <select id="polls" onchange="loadPollOptions(this.value)"></select>
+    
+    <div id="options"></div>
+    
+    <button onclick="vote()">Vote</button>
+
+    <h2>Live Results</h2>
+    <div id="results">No votes yet.</div>
+
+    <script>
+        const socket = io("http://localhost:3000"); 
+        let selectedOptionId = null;
+        let currentPollId = null;
+        let pollData = {};
+
+        // Fetch Polls
+        async function fetchPolls() {
+            const response = await fetch("http://localhost:3000/polls");
+            const data = await response.json();
+            updatePollDropdown(data.polls);
+        }
+
+        // Update Poll Dropdown
+        function updatePollDropdown(polls) {
+            const pollSelect = document.getElementById("polls");
+            pollSelect.innerHTML = ""; 
+
+            polls.forEach(poll => {
+                const option = document.createElement("option");
+                option.value = poll.id;
+                option.textContent = poll.question;
+                pollSelect.appendChild(option);
+            });
+
+            if (polls.length > 0) {
+                loadPollOptions(polls[0].id);
+            }
+        }
+
+        // Load Poll Options
+        function loadPollOptions(pollId) {
+            currentPollId = pollId;
+            selectedOptionId = null;
+
+            socket.emit("join_poll", pollId); 
+
+            const optionsDiv = document.getElementById("options");
+            optionsDiv.innerHTML = "";
+
+            if (!pollData[pollId] || pollData[pollId].length === 0) {
+                optionsDiv.innerHTML = "<p>No options available for this poll.</p>";
+                return;
+            }
+
+            pollData[pollId].forEach(option => {
+                const label = document.createElement("label");
+                label.className = "option";
+
+                const radio = document.createElement("input");
+                radio.type = "radio";
+                radio.name = "pollOption";
+                radio.value = option.id;
+                radio.onclick = () => selectedOptionId = option.id;
+
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(" " + option.text));
+                optionsDiv.appendChild(label);
+            });
+
+            updateResults(pollId);
+        }
+
+        // Vote
+        function vote() {
+            if (!selectedOptionId) {
+                alert("Select an option first!");
+                return;
+            }
+
+            socket.emit("new_vote", { pollId: currentPollId, optionId: selectedOptionId });
+        }
+
+        // Update results
+        function updateResults(pollId) {
+            const resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = "";
+
+            if (!pollData[pollId] || pollData[pollId].length === 0) {
+                resultsDiv.innerHTML = "<p>No votes yet.</p>";
+                return;
+            }
+
+            pollData[pollId].forEach(option => {
+                const resultItem = document.createElement("div");
+                resultItem.className = "result-item";
+                resultItem.innerHTML = `${option.text}: <span class="vote-count">${option.votes}</span> votes`;
+                resultsDiv.appendChild(resultItem);
+            });
+        }
+
+        // Add Option Field
+        function addOption() {
+            const pollOptions = document.getElementById("pollOptions");
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "pollOption";
+            input.placeholder = `Option ${pollOptions.children.length + 1}`;
+            pollOptions.appendChild(input);
+        }
+
+        // Create Poll
+        document.getElementById("createPollForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            
+            const question = document.getElementById("pollQuestion").value;
+            const options = [...document.querySelectorAll(".pollOption")].map(input => input.value).filter(Boolean);
+
+            if (question.trim() === "" || options.length < 2) {
+                alert("Please enter a question and at least two options.");
+                return;
+            }
+
+            const response = await fetch("http://localhost:3000/polls", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question, options }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById("pollQuestion").value = "";
+                document.getElementById("pollOptions").innerHTML = '<input type="text" class="pollOption" placeholder="Option 1" required><input type="text" class="pollOption" placeholder="Option 2" required>';
+                alert("Poll created successfully!");
+            } else {
+                alert("Error creating poll: " + data.message);
+            }
+        });
+
+        // Listen for real-time poll updates
+        socket.on("poll_data", (poll) => {
+            pollData[poll.id] = poll.PollOptions;
+            if (poll.id === currentPollId) {
+                loadPollOptions(poll.id);
+                updateResults(poll.id);
+            }
+        });
+
+        socket.on("new_poll", (poll) => {
+            pollData[poll.id] = poll.PollOptions;
+            updatePollDropdown(Object.values(pollData));
+        });
+
+        fetchPolls();
+    </script>
+</body>
+</html>
