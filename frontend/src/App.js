@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
-import CreatePoll from "../components/CreatePoll";
-import PollList from "../components/PollList";
-import PollOptions from "../components/PollOptions";
-import LiveResults from "../components/LiveResults";
+import CreatePoll from "./components/CreatePoll";
+import PollList from "./components/PollList";
+import PollOptions from "./components/PollOptions";
+import LiveResults from "./components/LiveResults";
 
 const socket = io("http://localhost:3000");
 
@@ -23,7 +23,10 @@ const App = () => {
             setPolls((prevPolls) => [...prevPolls, poll]);
         });
 
-        return () => socket.off("poll_data");
+        return () => {
+            socket.off("poll_data");
+            socket.off("new_poll");
+        };
     }, []);
 
     const fetchPolls = async () => {
@@ -35,7 +38,7 @@ const App = () => {
     return (
         <div style={{ textAlign: "center", fontFamily: "Arial, sans-serif" }}>
             <h1>Live Polling System</h1>
-            <CreatePoll />
+            <CreatePoll fetchPolls={fetchPolls} />
             <PollList polls={polls} setSelectedPoll={setSelectedPoll} />
             {selectedPoll && <PollOptions poll={selectedPoll} socket={socket} />}
             <LiveResults poll={selectedPoll} />
