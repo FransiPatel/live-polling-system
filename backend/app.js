@@ -1,30 +1,16 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
-const { SERVER_CONFIG } = require("./constants");
-const { sequelize } = require("./constants"); // Ensure DB connection is imported
+const { app, server, io, SERVER_CONFIG, sequelize, cors, express } = require("./constants");
 const pollRoutes = require("./routes/poll");
-const initSocket = require("./sockets/socket");
-
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const { initSocket } = require("./sockets/socket");
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
+app.set("io", io);
+initSocket(io);
+
 // Routes
 app.use("/polls", pollRoutes);
-
-// Initialize WebSockets
-initSocket(io);
 
 // Sync Database
 (async () => {

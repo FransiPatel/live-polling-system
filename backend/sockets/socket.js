@@ -1,71 +1,61 @@
-const { Poll, PollOption } = require("../models"); // Import models
-const { SOCKET_EVENTS } = require("../constants");
+const { Poll, PollOption } = require("../models");
 
-/* Initialize WebSocket connections */
 const initSocket = (io) => {
     io.on("connection", async (socket) => {
         console.log("New client connected:", socket.id);
 
-        // Load polls on connection
         await loadPollsFromDB(socket);
 
-        // Handle joining a poll room
         socket.on("join_poll", (pollId) => {
             socket.join(pollId);
-            console.log(`Client ${socket.id} joined poll room: ${pollId}`);
+            // console.log(`Client ${socket.id} joined poll room: ${pollId}`);
         });
 
-        // Handle voting via WebSocket
         socket.on("new_vote", async ({ pollId, optionId }) => {
             try {
-                // Find option and increment vote count in database
                 const pollOption = await PollOption.findByPk(optionId);
                 if (!pollOption) return;
-
+        
                 await pollOption.increment("votes");
-
-                // Fetch updated poll results from the database
+        
                 const updatedPoll = await Poll.findOne({
                     where: { id: pollId },
                     include: [{ model: PollOption }],
                 });
-
-                // Emit updated results to all clients in the poll room
-                io.to(pollId).emit("poll_data", {
-                    id: updatedPoll.id,
-                    PollOptions: updatedPoll.PollOptions.map((opt) => ({
-                        id: opt.id,
-                        text: opt.text,
-                        votes: opt.votes,
-                    })),
-                });
-
-                console.log(`Vote added to option ${optionId} in poll ${pollId}`);
+        
+                // console.log("Emitting poll_data for poll:", updatedPoll.id); // ✅ Debug log
+                io.to(pollId).emit("poll_data", updatedPoll); // Emit update only to the poll room
             } catch (error) {
                 console.error("Error updating vote:", error);
             }
         });
+        
 
-        // Handle disconnection
         socket.on("disconnect", () => {
-            console.log("Client disconnected:", socket.id);
+            // console.log("Client disconnected:", socket.id);
         });
     });
 
-    // Load Polls Initially from DB
     async function loadPollsFromDB(socket) {
-        const dbPolls = await Poll.findAll({ include: PollOption });
-        dbPolls.forEach((poll) => {
-            socket.emit("poll_data", {
-                id: poll.id,
-                PollOptions: poll.PollOptions.map((opt) => ({
-                    id: opt.id,
-                    text: opt.text,
-                    votes: opt.votes || 0,
-                })),
-            });
-        });
+        const polls = await Poll.findAll({ include: PollOption });
+        polls.forEach((poll) => socket.emit("poll_data", poll));
     }
 };
 
-module.exports = initSocket;
+const emitNewPoll = async (io, pollId) => {
+    try {
+        const newPoll = await Poll.findOne({
+            where: { id: pollId },
+            include: [{ model: PollOption }],
+        });
+
+        if (newPoll) {
+            io.emit("new_poll", newPoll);
+            // console.log(`New poll emitted: ${newPoll.question}`);
+        }
+    } catch (error) {
+        console.error("Error emitting new poll:", error);
+    }
+};
+
+module.exports = { initSocket, emitNewPoll };

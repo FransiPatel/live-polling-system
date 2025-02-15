@@ -1,5 +1,9 @@
-const { Sequelize } = require("sequelize");
 require("dotenv").config();
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+const { Sequelize } = require("sequelize");
 
 // Database Connection
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
@@ -28,8 +32,24 @@ const SOCKET_EVENTS = {
     POLL_CREATED: "poll_created"
 };
 
+// Create instances of required packages
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Export everything from constants
 module.exports = { 
+    app,
+    server,
+    io,
     sequelize, 
     SERVER_CONFIG, 
-    SOCKET_EVENTS 
+    SOCKET_EVENTS, 
+    cors,
+    express 
 };

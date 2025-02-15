@@ -13,21 +13,28 @@ const App = () => {
 
     useEffect(() => {
         fetchPolls();
+    
         socket.on("poll_data", (updatedPoll) => {
+            console.log("Received poll_data event:", updatedPoll); // ✅ Debug log
             setPolls((prevPolls) =>
                 prevPolls.map((poll) => (poll.id === updatedPoll.id ? updatedPoll : poll))
             );
+    
+            setSelectedPoll((prevSelected) =>
+                prevSelected && prevSelected.id === updatedPoll.id ? updatedPoll : prevSelected
+            );
         });
-
+    
         socket.on("new_poll", (poll) => {
+            console.log("New poll created:", poll); // ✅ Debug log
             setPolls((prevPolls) => [...prevPolls, poll]);
         });
-
+    
         return () => {
             socket.off("poll_data");
             socket.off("new_poll");
         };
-    }, []);
+    }, []);    
 
     const fetchPolls = async () => {
         const response = await fetch("http://localhost:3000/polls");
@@ -36,12 +43,12 @@ const App = () => {
     };
 
     return (
-        <div style={{ textAlign: "center", fontFamily: "Arial, sans-serif" }}>
+        <div className="app">
             <h1>Live Polling System</h1>
-            <CreatePoll fetchPolls={fetchPolls} />
+            <CreatePoll />
             <PollList polls={polls} setSelectedPoll={setSelectedPoll} />
             {selectedPoll && <PollOptions poll={selectedPoll} socket={socket} />}
-            <LiveResults poll={selectedPoll} />
+            <LiveResults poll={selectedPoll} /> {/* ✅ LiveResults will now update */}
         </div>
     );
 };

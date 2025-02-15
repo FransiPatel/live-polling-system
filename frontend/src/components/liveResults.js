@@ -4,11 +4,18 @@ const LiveResults = ({ poll }) => {
     if (!poll) return null;
 
     return (
-        <div style={{ marginTop: "20px", textAlign: "left", display: "inline-block", background: "white", padding: "15px", borderRadius: "5px", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}>
+        <div className="live-results-container">
             <h2>Live Results</h2>
             {poll.PollOptions.map((option) => (
                 <div key={option.id} className="result-item">
-                    {option.text}: <span className="vote-count">{option.votes}</span> votes
+                    <div className="result-text">{option.text}</div>
+                    <div className="progress-bar">
+                        <div
+                            className="progress-fill"
+                            style={{ width: `${option.votes * 10}%` }} // Assuming votes percentage (adjust as needed)
+                        ></div>
+                    </div>
+                    <span className="vote-count">{option.votes} votes</span>
                 </div>
             ))}
         </div>

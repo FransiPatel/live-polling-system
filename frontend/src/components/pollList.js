@@ -2,16 +2,19 @@ import React from "react";
 
 const PollList = ({ polls, setSelectedPoll }) => {
     return (
-        <div>
+        <div className="poll-list-container">
             <h2>Available Polls</h2>
-            <select onChange={(e) => setSelectedPoll(polls.find(poll => poll.id === e.target.value))}>
-                <option value="">Select a poll</option>
+            <div className="poll-cards">
                 {polls.map((poll) => (
-                    <option key={poll.id} value={poll.id}>
-                        {poll.question}
-                    </option>
+                    <div 
+                        key={poll.id} 
+                        className="poll-card" 
+                        onClick={() => setSelectedPoll(poll)}
+                    >
+                        <h4>{poll.question}</h4>
+                    </div>
                 ))}
-            </select>
+            </div>
         </div>
     );
 };

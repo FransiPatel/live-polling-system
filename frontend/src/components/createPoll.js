@@ -18,34 +18,48 @@ const CreatePoll = () => {
             alert("Please enter a question and at least two options.");
             return;
         }
-
-        const response = await fetch("http://localhost:3000/polls", {
+    
+        const response = await fetch("http://localhost:3000/polls/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question, options }),
         });
-
+    
         if (response.ok) {
             setQuestion("");
             setOptions(["", ""]);
-            alert("Poll created successfully!");
         } else {
             alert("Error creating poll.");
         }
     };
 
     return (
-        <div>
-            <h2>Create Poll</h2>
-            <form onSubmit={handleSubmit}>
-                <input type="text" placeholder="Enter poll question" value={question} onChange={(e) => setQuestion(e.target.value)} required />
-                <div>
+        <div className="create-poll-container">
+            <h2>Create a Poll</h2>
+            <form onSubmit={handleSubmit} className="create-poll-form">
+                <input
+                    type="text"
+                    className="poll-question-input"
+                    placeholder="Enter poll question"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    required
+                />
+                <div className="poll-options-container">
                     {options.map((opt, index) => (
-                        <input key={index} type="text" placeholder={`Option ${index + 1}`} value={opt} onChange={(e) => handleOptionChange(index, e.target.value)} required />
+                        <input
+                            key={index}
+                            type="text"
+                            className="poll-option-input"
+                            placeholder={`Option ${index + 1}`}
+                            value={opt}
+                            onChange={(e) => handleOptionChange(index, e.target.value)}
+                            required
+                        />
                     ))}
                 </div>
-                <button type="button" onClick={addOption}>Add Option</button>
-                <button type="submit">Create Poll</button>
+                <button type="button" className="add-option-btn" onClick={addOption}>+ Add Option</button>
+                <button type="submit" className="create-poll-btn">Create Poll</button>
             </form>
         </div>
     );
