@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
-import CreatePoll from "./components/CreatePoll";
-import PollList from "./components/PollList";
-import PollOptions from "./components/PollOptions";
-import LiveResults from "./components/LiveResults";
+import CreatePoll from "./components/createPoll";
+import PollList from "./components/pollList";
+import PollOptions from "./components/pollOptions";
+import LiveResults from "./components/liveResults";
 
 const socket = io("http://localhost:3000");
 
@@ -15,7 +15,6 @@ const App = () => {
         fetchPolls();
     
         socket.on("poll_data", (updatedPoll) => {
-            console.log("Received poll_data event:", updatedPoll); // ✅ Debug log
             setPolls((prevPolls) =>
                 prevPolls.map((poll) => (poll.id === updatedPoll.id ? updatedPoll : poll))
             );
@@ -26,7 +25,7 @@ const App = () => {
         });
     
         socket.on("new_poll", (poll) => {
-            console.log("New poll created:", poll); // ✅ Debug log
+            console.log("New poll created:", poll);
             setPolls((prevPolls) => [...prevPolls, poll]);
         });
     
@@ -48,7 +47,7 @@ const App = () => {
             <CreatePoll />
             <PollList polls={polls} setSelectedPoll={setSelectedPoll} />
             {selectedPoll && <PollOptions poll={selectedPoll} socket={socket} />}
-            <LiveResults poll={selectedPoll} /> {/* ✅ LiveResults will now update */}
+            <LiveResults poll={selectedPoll} />
         </div>
     );
 };

@@ -2,7 +2,7 @@ const { Poll, PollOption } = require("../models");
 
 const initSocket = (io) => {
     io.on("connection", async (socket) => {
-        console.log("New client connected:", socket.id);
+        // console.log("New client connected:", socket.id);
 
         await loadPollsFromDB(socket);
 
@@ -23,7 +23,7 @@ const initSocket = (io) => {
                     include: [{ model: PollOption }],
                 });
         
-                // console.log("Emitting poll_data for poll:", updatedPoll.id); // ✅ Debug log
+                // console.log("Emitting poll_data for poll:", updatedPoll.id);
                 io.to(pollId).emit("poll_data", updatedPoll); // Emit update only to the poll room
             } catch (error) {
                 console.error("Error updating vote:", error);
