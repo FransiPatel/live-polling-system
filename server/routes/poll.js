@@ -1,4 +1,4 @@
-const express = require("express");
+const { express } = require("../constants");
 const { createPoll, getPolls, votePoll } = require("../controllers/pollController");
 
 const router = express.Router();

@@ -1,12 +1,24 @@
 const { Poll, PollOption } = require("../models");
 const { emitNewPoll } = require("../sockets/socket");
+const Validator = require('validatorjs');
 
 const createPoll = async (req, res) => {
     try {
         const { question, options } = req.body;
 
-        if (!question || !Array.isArray(options) || options.length < 2) {
-            return res.status(400).json({ message: "Invalid poll data" });
+        const rules = {
+            question: 'required|string|min:3|max:255',
+            options: 'required|array|min:2',
+            'options.*': 'required|string|min:1|max:255'
+        };
+
+        const validation = new Validator(req.body, rules);
+
+        if (validation.fails()) {
+            return res.status(400).json({ 
+                message: "Validation failed", 
+                errors: validation.errors.all() 
+            });
         }
 
         const poll = await Poll.create({ question });
@@ -36,9 +48,22 @@ const votePoll = async (req, res) => {
     try {
         const { optionId } = req.body;
 
+        const rules = {
+            optionId: 'required|string|uuid'
+        };
+
+        const validation = new Validator(req.body, rules);
+
+        if (validation.fails()) {
+            return res.status(400).json({ 
+                message: "Validation failed", 
+                errors: validation.errors.all() 
+            });
+        }
+
         const pollOption = await PollOption.findByPk(optionId);
         if (!pollOption) {
-            return res.status(404).json({ message: "Poll option not found" });
+            return res.status(400).json({ message: "Poll option not found" });
         }
 
         await pollOption.increment("votes");

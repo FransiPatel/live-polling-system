@@ -5,12 +5,48 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const { Sequelize } = require("sequelize");
 
-// Database Connection
-const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
+// Database Configuration
+const DB_CONFIG = {
+    name: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     host: process.env.DB_HOST,
-    dialect: "postgres",
-    logging: false,
-});
+    options: {
+        dialect: "postgres",
+        logging: false,
+    }
+};
+
+// Server Configuration
+const SERVER_CONFIG = {
+    PORT: process.env.PORT || 3000,
+    CORS_OPTIONS: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+};
+
+// Socket Events
+const SOCKET_EVENTS = {
+    CONNECTION: 'connection',
+    DISCONNECT: 'disconnect',
+    NEW_VOTE: 'new_vote',
+    POLL_CREATED: 'poll_created',
+    POLL_DATA: 'poll_data',
+    NEW_POLL: 'new_poll',
+    JOIN_POLL: 'join_poll'
+};
+
+// Database Connection
+const sequelize = new Sequelize(
+    DB_CONFIG.name, 
+    DB_CONFIG.user, 
+    DB_CONFIG.password, 
+    {
+        host: DB_CONFIG.host,
+        ...DB_CONFIG.options
+    }
+);
 
 // Test Database Connection
 (async () => {
@@ -22,34 +58,26 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
     }
 })();
 
-// App Constants
-const SERVER_CONFIG = {
-    PORT: process.env.PORT || 3000,
-};
-
-const SOCKET_EVENTS = {
-    NEW_VOTE: "new_vote",
-    POLL_CREATED: "poll_created"
-};
-
 // Create instances of required packages
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
+    cors: SERVER_CONFIG.CORS_OPTIONS
 });
 
-// Export everything from constants
-module.exports = { 
+module.exports = {
+    // Packages
+    express,
+    cors,
+    
+    // Configurations
+    DB_CONFIG,
+    SERVER_CONFIG,
+    SOCKET_EVENTS,
+    
+    // Instances
     app,
     server,
     io,
-    sequelize, 
-    SERVER_CONFIG, 
-    SOCKET_EVENTS, 
-    cors,
-    express 
+    sequelize
 };

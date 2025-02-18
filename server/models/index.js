@@ -1,6 +1,4 @@
-const { Sequelize } = require("sequelize");
-const sequelize = require("../constants").sequelize;
-
+const { sequelize } = require("../constants");
 const PollModel = require("./Poll");
 const PollOptionModel = require("./PollOption");
 
