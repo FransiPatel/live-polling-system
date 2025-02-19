@@ -1,12 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
-const PollOptions = ({ poll, socket }) => {
+const PollOptions = ({ poll }) => {
     const [selectedOption, setSelectedOption] = useState(null);
     const [isVoting, setIsVoting] = useState(false);
-
-    useEffect(() => {
-        socket.emit("join_poll", poll.id);
-    }, [poll.id]);
 
     const handleVote = async () => {
         if (!selectedOption) {
@@ -23,9 +19,7 @@ const PollOptions = ({ poll, socket }) => {
                 body: JSON.stringify({ optionId: selectedOption }),
             });
 
-            if (response.ok) {
-                setSelectedOption(null);
-            } else {
+            if (!response.ok) {
                 alert("Error submitting vote.");
             }
         } catch (error) {

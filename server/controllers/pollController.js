@@ -1,5 +1,5 @@
 const { Poll, PollOption } = require("../models");
-const { emitNewPoll } = require("../sockets/socket");
+const { emitNewPoll, emitUpdatedPoll } = require("../sockets/socket");
 const Validator = require('validatorjs');
 
 
@@ -30,8 +30,8 @@ const createPoll = async (req, res) => {
         const pollOptions = options.map(text => ({ text, pollId: poll.id }));
         await PollOption.bulkCreate(pollOptions);
 
-        // Emit new poll to all clients
-        emitNewPoll(req.app.get("io"), poll.id);
+        // Simplified emit call
+        await emitNewPoll(poll.id);
 
         res.status(201).json({ message: "Poll created", poll });
     } catch (error) {
@@ -79,16 +79,11 @@ const votePoll = async (req, res) => {
 
         // Increment the votes count for the poll option
         await pollOption.increment("votes");
+        
+        // Simplified emit call
+        await emitUpdatedPoll(pollOption.pollId);
 
-        const updatedPoll = await Poll.findOne({
-            where: { id: pollOption.pollId },
-            include: [{ model: PollOption }],
-        });
-
-        // Emit the updated poll to all clients
-        req.app.get("io").emit("poll_data", updatedPoll);
-
-        res.status(200).json({ message: "Vote counted!", poll: updatedPoll });
+        res.status(200).json({ message: "Vote counted!" });
     } catch (error) {
         console.error("Error voting:", error);
         res.status(500).json({ message: "Server error" });

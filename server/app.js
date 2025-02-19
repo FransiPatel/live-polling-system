@@ -6,7 +6,7 @@ const { initSocket } = require("./sockets/socket");
 app.use(cors());
 app.use(express.json());
 
-app.set("io", io);
+// Initialize socket
 initSocket(io);
 
 // Routes
