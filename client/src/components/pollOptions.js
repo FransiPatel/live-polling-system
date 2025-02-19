@@ -2,20 +2,38 @@ import React, { useEffect, useState } from "react";
 
 const PollOptions = ({ poll, socket }) => {
     const [selectedOption, setSelectedOption] = useState(null);
+    const [isVoting, setIsVoting] = useState(false);
 
     useEffect(() => {
         socket.emit("join_poll", poll.id);
-        console.log("Joined poll room:", poll.id); // ✅ Debug log
     }, [poll.id]);
 
-    const handleVote = () => {
+    const handleVote = async () => {
         if (!selectedOption) {
             alert("Select an option first!");
             return;
         }
 
-        socket.emit("new_vote", { pollId: poll.id, optionId: selectedOption });
-        setSelectedOption(null);
+        try {
+            setIsVoting(true);
+            
+            const response = await fetch("http://localhost:3000/polls/vote", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ optionId: selectedOption }),
+            });
+
+            if (response.ok) {
+                setSelectedOption(null);
+            } else {
+                alert("Error submitting vote.");
+            }
+        } catch (error) {
+            console.error("Error voting:", error);
+            alert("Error submitting vote.");
+        } finally {
+            setIsVoting(false);
+        }
     };
 
     return (
@@ -27,12 +45,19 @@ const PollOptions = ({ poll, socket }) => {
                         key={option.id}
                         className={`poll-option ${selectedOption === option.id ? "selected" : ""}`}
                         onClick={() => setSelectedOption(option.id)}
+                        disabled={isVoting}
                     >
                         {option.text}
                     </button>
                 ))}
             </div>
-            <button className="vote-button" onClick={handleVote}>Vote</button>
+            <button 
+                className="vote-button" 
+                onClick={handleVote}
+                disabled={isVoting || !selectedOption}
+            >
+                {isVoting ? "Voting..." : "Vote"}
+            </button>
         </div>
     );
 };
